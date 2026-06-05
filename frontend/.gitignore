@@ -1,0 +1,11 @@
+# 忽略 Flutter 自动生成的编译文件夹
+**/build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.packages
+
+# 忽略本地配置文件
+.env
+*.log

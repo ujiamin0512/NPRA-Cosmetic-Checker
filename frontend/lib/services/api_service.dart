@@ -1,22 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart'; // For kIsWeb
-import 'dart:io' show Platform;
 import '../models/analysis.dart';
 
 class ApiService {
   static String get baseUrl {
-    // If you are using a physical Android device, change this to your PC's local IP (e.g. '192.168.1.100')
-    // Android Emulator MUST use 10.0.2.2 to access your PC's localhost.
-    const String localIp = '10.0.2.2'; 
-
-    if (kIsWeb) {
-      return 'http://127.0.0.1:8000';
-    } else if (Platform.isAndroid) {
-      return 'http://$localIp:8000'; 
-    } else {
-      return 'http://127.0.0.1:8000'; // Windows, iOS Simulator, MacOS, Linux
-    }
+    // Production backend deployed on Render — replace with your actual Render URL after deploying
+    const String renderUrl = 'https://YOUR-APP-NAME.onrender.com';
+    return renderUrl;
   }
 
   static Future<AnalysisResponse> analyzeIngredients(String ingredients) async {

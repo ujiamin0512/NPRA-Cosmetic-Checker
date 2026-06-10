@@ -2,38 +2,49 @@ import re
 from database.client import supabase
 
 def search_products(query: str) -> list:
-    """
-    Search products using a combination of Supabase Full Text Search (on fts_vector)
-    and ILIKE fallback search on product, brand, and company.
-    """
     trimmed_query = query.strip()
     if not trimmed_query:
         return []
 
-    results = []
-    # 1. Try Full Text Search (which indexes product and brand in fts_vector)
+    fts_results = []
+    trigram_results = []
+
+    # 1. FTS on fts_vector (fast, exact prefix match)
     try:
         sanitized = re.sub(r'[^\w\s]', '', trimmed_query)
         words = [f"{word}:*" for word in sanitized.split() if word]
         if words:
             formatted_query = ' & '.join(words)
             response = supabase.table("products").select("*").text_search("fts_vector", formatted_query).execute()
-            results = response.data or []
+            fts_results = response.data or []
     except Exception as e:
-        print(f"Full text search failed: {e}")
+        print(f"FTS failed: {e}")
 
-    # 2. Try ILIKE search on product, brand, and company
+    # 2. Trigram RPC (fuzzy, typo-tolerant) on product and brand
     try:
-        or_filter = f"product.ilike.%{trimmed_query}%,brand.ilike.%{trimmed_query}%,company.ilike.%{trimmed_query}%"
-        ilike_response = supabase.table("products").select("*").or_(or_filter).limit(50).execute()
-        ilike_results = ilike_response.data or []
-        
-        seen_notif_nos = {item['notif_no'] for item in results}
-        for item in ilike_results:
-            if item['notif_no'] not in seen_notif_nos:
-                results.append(item)
-                seen_notif_nos.add(item['notif_no'])
+        response = supabase.rpc("search_products_trigram", {"query_text": trimmed_query}).execute()
+        trigram_results = response.data or []
     except Exception as e:
-        print(f"ILIKE fallback search failed: {e}")
-        
-    return results
+        print(f"Trigram search failed: {e}")
+
+    # Merge: trigram results carry similarity_score, FTS results get score 1.0
+    seen = {}
+    for item in fts_results:
+        key = item["notif_no"]
+        item["similarity_score"] = 1.0
+        seen[key] = item
+
+    for item in trigram_results:
+        key = item["notif_no"]
+        if key not in seen:
+            seen[key] = item
+        else:
+            seen[key]["similarity_score"] = max(seen[key]["similarity_score"], item.get("similarity_score", 0))
+
+    merged = sorted(seen.values(), key=lambda x: x["similarity_score"], reverse=True)
+
+    # Strip similarity_score before returning — Flutter model doesn't expect it
+    for item in merged:
+        item.pop("similarity_score", None)
+
+    return merged[:20]

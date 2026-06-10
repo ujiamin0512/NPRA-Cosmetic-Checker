@@ -9,3 +9,7 @@
 # 忽略本地配置文件
 .env
 *.log
+
+# Gradle cache/build files
+**/.gradle/
+**/android/.gradle/

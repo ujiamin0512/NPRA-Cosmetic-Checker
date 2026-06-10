@@ -5,7 +5,7 @@ import '../models/analysis.dart';
 class ApiService {
   static String get baseUrl {
     // Production backend deployed on Render — replace with your actual Render URL after deploying
-    const String renderUrl = 'https://npra-cosmetic-checker-backend.onrender.com';
+    const String renderUrl = 'http://192.168.0.11:8000';
     return renderUrl;
   }
 

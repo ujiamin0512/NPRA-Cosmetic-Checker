@@ -8,13 +8,13 @@ from sentence_transformers import SentenceTransformer
 
 from pathlib import Path
 
-# Load environment variables
+# Load environment variables (local .env only — Render injects them directly)
 env_path = Path(__file__).resolve().parent / '.env'
 load_dotenv(dotenv_path=env_path)
 
 # ================= Configuration =================
-SUPABASE_URL = "https://hgogvynnpedjjnnnbxon.supabase.co"
-SUPABASE_KEY = "sb_publishable_eeF2CCpuGp5WP1y6USa8kg_yQWw5_rx" 
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -27,11 +27,17 @@ class ChatBotManager:
             model="gemini-2.5-flash-lite",
             google_api_key=GEMINI_API_KEY,
             temperature=0.7,
-            convert_system_message_to_human=True # Required for some older Gemini SDK versions if system messages cause issues
+            convert_system_message_to_human=True
         )
-        
-        # Initialize Embedding model (384 dimensions)
-        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+
+        # Lazy-loaded to avoid memory crash on startup (loaded only when vector search is needed)
+        self._embedding_model = None
+
+    @property
+    def embedding_model(self):
+        if self._embedding_model is None:
+            self._embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        return self._embedding_model
         
     def _parse_history(self, history: List[Dict[str, str]]):
         """Converts raw dictionary history into Langchain message objects."""

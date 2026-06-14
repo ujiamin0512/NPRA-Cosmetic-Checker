@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/chat_session.dart';
+import 'user_db.dart';
 
 class ChatDb {
   static final ChatDb instance = ChatDb._init();
@@ -20,9 +21,16 @@ class ChatDb {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: _upgradeDB,
     );
+  }
+
+  Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute("ALTER TABLE chat_sessions ADD COLUMN user_id TEXT NOT NULL DEFAULT ''");
+    }
   }
 
   Future _createDB(Database db, int version) async {
@@ -33,6 +41,7 @@ class ChatDb {
     await db.execute('''
 CREATE TABLE chat_sessions (
   id $idType,
+  user_id $textType,
   title $textType,
   flow_type $textType,
   created_at $textType,
@@ -77,10 +86,11 @@ CREATE TABLE chat_messages (
 
   Future<ChatSession?> getSessionByProductId(String productId) async {
     final db = await instance.database;
+    final userId = UserDatabase.currentUserId ?? '';
     final maps = await db.query(
       'chat_sessions',
-      where: 'product_id = ?',
-      whereArgs: [productId],
+      where: 'product_id = ? AND user_id = ?',
+      whereArgs: [productId, userId],
       limit: 1,
     );
 
@@ -93,8 +103,13 @@ CREATE TABLE chat_messages (
 
   Future<List<ChatSession>> getAllSessions() async {
     final db = await instance.database;
-    const orderBy = 'updated_at DESC';
-    final result = await db.query('chat_sessions', orderBy: orderBy);
+    final userId = UserDatabase.currentUserId ?? '';
+    final result = await db.query(
+      'chat_sessions',
+      where: 'user_id = ?',
+      whereArgs: [userId],
+      orderBy: 'updated_at DESC',
+    );
     return result.map((json) => ChatSession.fromMap(json)).toList();
   }
 
@@ -135,10 +150,11 @@ CREATE TABLE chat_messages (
     return result.map((json) => ChatMessageData.fromMap(json)).toList();
   }
 
-  /// Clear all chat history (sessions and messages)
+  /// Clear all chat history for the current user
   Future<void> clearAll() async {
     final db = await instance.database;
-    // chat_messages will be cleared automatically due to ON DELETE CASCADE
-    await db.delete('chat_sessions');
+    final userId = UserDatabase.currentUserId ?? '';
+    // chat_messages cleared automatically via ON DELETE CASCADE
+    await db.delete('chat_sessions', where: 'user_id = ?', whereArgs: [userId]);
   }
 }

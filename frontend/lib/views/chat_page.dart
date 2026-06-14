@@ -4,6 +4,7 @@ import 'package:flutter_chat_core/flutter_chat_core.dart' as core;
 import 'package:uuid/uuid.dart';
 
 import '../databases/chat_db.dart';
+import '../databases/user_db.dart';
 import '../models/chat_session.dart';
 import '../services/chat_api_service.dart';
 
@@ -67,6 +68,7 @@ class _ChatPageState extends State<ChatPage> {
     if (session == null) {
       final newSession = ChatSession(
         id: widget.sessionId,
+        userId: UserDatabase.currentUserId ?? '',
         title: widget.productName ?? 'General Skincare Chat',
         flowType: widget.flowType,
         createdAt: DateTime.now(),
@@ -222,6 +224,7 @@ class _ChatPageState extends State<ChatPage> {
         String newTitle = text.length > 30 ? '${text.substring(0, 27)}...' : text;
         await db.createSession(ChatSession(
           id: session.id,
+          userId: session.userId,
           title: newTitle,
           flowType: session.flowType,
           createdAt: session.createdAt,

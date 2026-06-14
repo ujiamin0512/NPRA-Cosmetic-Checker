@@ -1,5 +1,6 @@
 class ChatSession {
   final String id;
+  final String userId;
   final String title;
   final String flowType; // 'product' or 'home'
   final DateTime createdAt;
@@ -8,6 +9,7 @@ class ChatSession {
 
   ChatSession({
     required this.id,
+    required this.userId,
     required this.title,
     required this.flowType,
     required this.createdAt,
@@ -18,6 +20,7 @@ class ChatSession {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'user_id': userId,
       'title': title,
       'flow_type': flowType,
       'created_at': createdAt.toIso8601String(),
@@ -29,6 +32,7 @@ class ChatSession {
   factory ChatSession.fromMap(Map<String, dynamic> map) {
     return ChatSession(
       id: map['id'],
+      userId: map['user_id'] ?? '',
       title: map['title'],
       flowType: map['flow_type'],
       createdAt: DateTime.parse(map['created_at']),

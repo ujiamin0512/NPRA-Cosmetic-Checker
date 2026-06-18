@@ -52,6 +52,7 @@ class _DashboardShellState extends State<_DashboardShell> {
         icon: Icon(Icons.home),
         label: 'Home',
       ),
+      //Grey out restricted tabs for guest users
       BottomNavigationBarItem(
         icon: Icon(
           Icons.history,
@@ -66,6 +67,7 @@ class _DashboardShellState extends State<_DashboardShell> {
         ),
         label: 'Report',
       ),
+      // Change profile tab to login
       BottomNavigationBarItem(
         icon: Icon(
           isGuest ? Icons.login : Icons.person,

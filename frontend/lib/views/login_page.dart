@@ -196,7 +196,6 @@ class _LoginFormState extends State<_LoginForm> {
   Future<void> _handleLogin() async {
     final String email = _emailController.text.trim();
     final String password = _passwordController.text;
-
     if (email.isEmpty || password.isEmpty) {
       _showSnackBar('Please enter email and PIN');
       return;
@@ -206,7 +205,6 @@ class _LoginFormState extends State<_LoginForm> {
       _showSnackBar('PIN must be exactly 6 digits');
       return;
     }
-
     setState(() => _submitting = true);
 
     try {

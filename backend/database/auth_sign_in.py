@@ -2,55 +2,26 @@ from supabase import create_client
 from database.client import supabase, url, key
 
 def auth_login(email: str, password: str) -> dict:
-    """
-    Authenticate user credentials, verify/fetch profiles and skin_profiles, and return user model data.
-    """
     temp_client = create_client(url, key)
     response = temp_client.auth.sign_in_with_password({
         "email": email,
         "password": password
     })
-    
+
     if response.user:
         user_id = response.user.id
-        
-        # 1. Fetch profile
-        profile = None
-        try:
-            profile_response = supabase.table("profiles").select("*").eq("id", user_id).maybe_single().execute()
-            profile = profile_response.data
-        except Exception as e:
-            print(f"Error reading profile: {e}")
-            
-        if not profile:
-            try:
-                # Create missing profile if not exists
-                supabase.table("profiles").insert({
-                    "id": user_id,
-                    "username": email.split("@")[0],
-                    "email": email
-                }).execute()
-                profile_response = supabase.table("profiles").select("*").eq("id", user_id).maybe_single().execute()
-                profile = profile_response.data
-            except Exception as e:
-                print(f"Error creating missing profile during login: {e}")
-                
-        # 2. Fetch skin profile
-        skin_profile = None
-        try:
-            skin_response = supabase.table("skin_profiles").select("*").eq("id", user_id).maybe_single().execute()
-            skin_profile = skin_response.data
-        except Exception as e:
-            try:
-                skin_response = supabase.table("skin_profiles").select("*").eq("user_id", user_id).maybe_single().execute()
-                skin_profile = skin_response.data
-            except Exception as e2:
-                print(f"Error reading skin profile: {e2}")
-                
-        # Build user data dictionary
-        username = profile.get("username", email.split("@")[0]) if profile else email.split("@")[0]
-        email_val = profile.get("email", email) if profile else email
-        
+
+        # Fetch profile
+        profile_response = supabase.table("profiles").select("*").eq("id", user_id).maybe_single().execute()
+        profile = profile_response.data
+
+        # Fetch skin profile
+        skin_response = supabase.table("skin_profiles").select("*").eq("id", user_id).maybe_single().execute()
+        skin_profile = skin_response.data
+
+        username = profile.get("username")
+        email_val = profile.get("email")
+
         return {
             "id": user_id,
             "username": username,

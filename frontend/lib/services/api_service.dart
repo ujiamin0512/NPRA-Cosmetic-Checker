@@ -5,7 +5,7 @@ import '../models/analysis.dart';
 class ApiService {
   static String get baseUrl {
     // Production backend deployed on Render — replace with your actual Render URL after deploying
-    const String renderUrl = 'http://192.168.0.11:8000';
+    const String renderUrl = 'http://192.168.0.10:8000';
     return renderUrl;
   }
 

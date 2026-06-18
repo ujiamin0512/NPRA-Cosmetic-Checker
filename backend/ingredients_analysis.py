@@ -26,7 +26,6 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 # ==========================================
 
 def analyze_single_ingredient(name: str):
-    # Simple cleaning: just lowercase and strip leading/trailing whitespace
     clean_name = name.lower().strip()
     
     if not clean_name:
@@ -63,12 +62,9 @@ def analyze_ingredients_strict(ingredients_input: str):
 
     print(f"\n🧪 分析中: 发现 {len(input_names)} 个成分...\n")
 
-    # 2. 并发调用数据库 RPC 以极大加快速度
     with ThreadPoolExecutor(max_workers=10) as executor:
-        # executor.map 保证了返回结果的顺序和输入一致
         final_details = list(executor.map(analyze_single_ingredient, input_names))
 
-    # 4. 产品报告汇总 (Summary)
     summary = {
         "is_natural": all(d.get("is_natural", False) for d in final_details if d['matched_type'] != 'not_found'),
         "is_vegan": all(d.get("is_vegan", True) for d in final_details),

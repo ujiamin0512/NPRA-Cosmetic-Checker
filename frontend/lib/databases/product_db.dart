@@ -13,7 +13,7 @@ class ProductDatabase {
     final String trimmedQuery = query.trim();
     if (trimmedQuery.isEmpty) return <Product>[];
 
-    final url = Uri.parse('${ApiService.baseUrl}/api/products/search');
+    final url = Uri.parse('${await ApiService.getBaseUrl()}/api/products/search');
     try {
       final response = await http.post(
         url,
@@ -41,7 +41,7 @@ class ProductDatabase {
     int limit = 50,
     int offset = 0,
   }) async {
-    final url = Uri.parse('${ApiService.baseUrl}/api/products/fetch');
+    final url = Uri.parse('${await ApiService.getBaseUrl()}/api/products/fetch');
     try {
       final response = await http.post(
         url,

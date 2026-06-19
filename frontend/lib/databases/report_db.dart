@@ -9,7 +9,7 @@ class ReportDatabase {
   ReportDatabase._();
 
   static Future<String?> makeReport(Report report) async {
-    final url = Uri.parse('${ApiService.baseUrl}/api/reports/make');
+    final url = Uri.parse('${await ApiService.getBaseUrl()}/api/reports/make');
     try {
       final Map<String, dynamic> data = report.toMap();
       data.remove(Report.colId); // Ensure ID is not inserted so Supabase auto-generates it
@@ -44,7 +44,7 @@ class ReportDatabase {
       return <Report>[];
     }
 
-    final url = Uri.parse('${ApiService.baseUrl}/api/reports/fetch');
+    final url = Uri.parse('${await ApiService.getBaseUrl()}/api/reports/fetch');
     try {
       final response = await http.post(
         url,
@@ -75,7 +75,7 @@ class ReportDatabase {
       return 'Report ID is null';
     }
 
-    final url = Uri.parse('${ApiService.baseUrl}/api/reports/edit');
+    final url = Uri.parse('${await ApiService.getBaseUrl()}/api/reports/edit');
     try {
       final Map<String, dynamic> data = report.toMap();
       data.remove(Report.colId); // Don't update the primary key
@@ -106,7 +106,7 @@ class ReportDatabase {
   }
 
   static Future<int> deleteReport(int id) async {
-    final url = Uri.parse('${ApiService.baseUrl}/api/reports/delete');
+    final url = Uri.parse('${await ApiService.getBaseUrl()}/api/reports/delete');
     try {
       final response = await http.post(
         url,

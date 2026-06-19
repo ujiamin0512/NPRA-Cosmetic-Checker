@@ -80,7 +80,7 @@ class UserDatabase {
     String email,
     String password,
   ) async {
-    final url = Uri.parse('${ApiService.baseUrl}/api/auth/signup');
+    final url = Uri.parse('${await ApiService.getBaseUrl()}/api/auth/signup');
     try {
       final response = await http.post(
         url,
@@ -108,7 +108,7 @@ class UserDatabase {
   }
 
   static Future<bool> emailExists(String email) async {
-    final url = Uri.parse('${ApiService.baseUrl}/api/auth/email_exists');
+    final url = Uri.parse('${await ApiService.getBaseUrl()}/api/auth/email_exists');
     try {
       final response = await http.post(
         url,
@@ -128,7 +128,7 @@ class UserDatabase {
   }
 
   static Future<model.User?> validateCredentials(String email, String password) async {
-    final url = Uri.parse('${ApiService.baseUrl}/api/auth/login');
+    final url = Uri.parse('${await ApiService.getBaseUrl()}/api/auth/login');
     try {
       final response = await http.post(
         url,
@@ -185,7 +185,7 @@ class UserDatabase {
     final String? userId = currentUserId;
     if (userId == null) return null;
 
-    final url = Uri.parse('${ApiService.baseUrl}/api/auth/user');
+    final url = Uri.parse('${await ApiService.getBaseUrl()}/api/auth/user');
     try {
       final response = await http.post(
         url,
@@ -232,7 +232,7 @@ class UserDatabase {
     final String? userId = currentUserId;
     if (userId == null) return 0;
 
-    final url = Uri.parse('${ApiService.baseUrl}/api/auth/update_profile');
+    final url = Uri.parse('${await ApiService.getBaseUrl()}/api/auth/update_profile');
     try {
       final response = await http.post(
         url,
@@ -268,7 +268,7 @@ class UserDatabase {
     final String? userId = currentUserId;
     if (userId == null) return 0;
 
-    final url = Uri.parse('${ApiService.baseUrl}/api/auth/update_password');
+    final url = Uri.parse('${await ApiService.getBaseUrl()}/api/auth/update_password');
     try {
       final response = await http.post(
         url,
@@ -306,7 +306,7 @@ class UserDatabase {
     final String? userId = currentUserId;
     if (userId == null) return 0;
 
-    final url = Uri.parse('${ApiService.baseUrl}/api/auth/delete_user');
+    final url = Uri.parse('${await ApiService.getBaseUrl()}/api/auth/delete_user');
     try {
       final response = await http.post(
         url,

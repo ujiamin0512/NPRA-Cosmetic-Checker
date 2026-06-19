@@ -8,7 +8,7 @@ class ChatApiService {
     required String ingredients,
     required String skinProfile,
   }) async {
-    final url = Uri.parse('${ApiService.baseUrl}/chat/init/product');
+    final url = Uri.parse('${await ApiService.getBaseUrl()}/chat/init/product');
 
     try {
       final response = await http.post(
@@ -38,7 +38,7 @@ class ChatApiService {
     required String newMessage,
     required Map<String, dynamic> context,
   }) async {
-    final url = Uri.parse('${ApiService.baseUrl}/chat/message');
+    final url = Uri.parse('${await ApiService.getBaseUrl()}/chat/message');
 
     try {
       final response = await http.post(

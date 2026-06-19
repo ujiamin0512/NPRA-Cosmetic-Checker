@@ -16,7 +16,7 @@ class SkinProfileDatabase {
     final String? userId = UserDatabase.currentUserId;
     if (userId == null) return 'User not logged in';
 
-    final url = Uri.parse('${ApiService.baseUrl}/api/skin_profile/update');
+    final url = Uri.parse('${await ApiService.getBaseUrl()}/api/skin_profile/update');
     try {
       final response = await http.post(
         url,
@@ -52,7 +52,7 @@ class SkinProfileDatabase {
     final String? userId = UserDatabase.currentUserId;
     if (userId == null) return false;
 
-    final url = Uri.parse('${ApiService.baseUrl}/api/skin_profile/skip');
+    final url = Uri.parse('${await ApiService.getBaseUrl()}/api/skin_profile/skip');
     try {
       final response = await http.post(
         url,

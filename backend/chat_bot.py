@@ -25,7 +25,6 @@ class ChatBotManager:
             model="gemini-3.1-flash-lite",
             google_api_key=GEMINI_API_KEY,
             temperature=0.7,
-            convert_system_message_to_human=True
         )
 
     def _parse_history(self, history: List[Dict[str, str]]):

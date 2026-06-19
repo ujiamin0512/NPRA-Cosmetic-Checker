@@ -1,0 +1,16 @@
+INFO:     127.0.0.1:54118 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54176 - "POST /api/products/search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54176 - "POST /api/products/fetch HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54241 - "POST /api/products/search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54241 - "POST /api/products/search HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54241 - "POST /api/products/search HTTP/1.1" 200 OK
+
+🧪 分析中: 发现 3 个成分...
+
+✅ DEBUG: 'Niacinamide' -> 'niacinamide' (Score: 1.0000)
+✅ DEBUG: 'Water' -> 'water' (Score: 1.0000)
+✅ DEBUG: 'Glycerin' -> 'glycerin' (Score: 1.0000)
+INFO:     127.0.0.1:63128 - "POST /analyze HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62543 - "POST /api/auth/email_exists HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62543 - "POST /chat/init/product HTTP/1.1" 200 OK
+INFO:     127.0.0.1:62543 - "POST /chat/message HTTP/1.1" 200 OK

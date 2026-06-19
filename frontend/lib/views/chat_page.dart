@@ -251,15 +251,6 @@ class _ChatPageState extends State<ChatPage> {
       );
 
       final aiReply = response['reply'] as String? ?? "I'm sorry, I couldn't understand that.";
-      final recommendations = response['recommendations'] as List?;
-
-      String finalReplyText = aiReply;
-      if (recommendations != null && recommendations.isNotEmpty) {
-        finalReplyText += '\n\n**Recommendations:**\n';
-        for (var rec in recommendations) {
-          finalReplyText += '- ${rec['product']} (${rec['brand']})\n';
-        }
-      }
 
       final aiDbMsg = ChatMessageData(
         id: _uuid.v4(),

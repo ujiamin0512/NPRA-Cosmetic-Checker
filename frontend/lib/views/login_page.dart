@@ -158,6 +158,16 @@ class _LoginFormState extends State<_LoginForm> {
           ),
         ),
 
+        if (_submitting)
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text(
+              'Connecting to server, please wait...',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+          ),
+
         const SizedBox(height: 16),
 
         SizedBox(

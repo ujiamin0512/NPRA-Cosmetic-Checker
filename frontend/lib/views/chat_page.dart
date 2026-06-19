@@ -256,7 +256,7 @@ class _ChatPageState extends State<ChatPage> {
         id: _uuid.v4(),
         sessionId: widget.sessionId,
         role: 'assistant',
-        content: finalReplyText,
+        content: aiReply,
         createdAt: DateTime.now(),
       );
       await ChatDb.instance.insertMessage(aiDbMsg);

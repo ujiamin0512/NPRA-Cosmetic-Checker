@@ -15,7 +15,7 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$_renderUrl/'))
-          .timeout(const Duration(seconds: 8));
+          .timeout(const Duration(seconds: 60));
       if (response.statusCode == 200) {
         _resolvedUrl = _renderUrl;
         print('🌐 [ApiService] Using Render backend: $_renderUrl');

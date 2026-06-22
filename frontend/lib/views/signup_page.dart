@@ -167,6 +167,12 @@ class _SignUpPageState extends State<SignUpPage> {
       return;
     }
 
+    final emailRegex = RegExp(r'^[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}$');
+    if (!emailRegex.hasMatch(email)) {
+      _showSnackBar('Please enter a valid email address');
+      return;
+    }
+
     if (password.length != 6 || int.tryParse(password) == null) {
       _showSnackBar('PIN must be exactly 6 digits');
       return;

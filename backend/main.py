@@ -16,6 +16,7 @@ from database.auth_update_profile import update_user_profile
 from database.auth_update_password import update_user_password
 from database.auth_delete_user import delete_user_account
 from database.auth_email_exists import email_exists
+from database.auth_resend_verification import resend_verification_email
 from database.skin_profile_update import update_skin_profile
 from database.skin_profile_skip import increment_wizard_skip
 from database.report_make import make_report
@@ -122,6 +123,17 @@ async def api_login(request: LoginRequest):
     try:
         user_data = auth_login(request.email, request.password)
         return {"status": "success", "user": user_data}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+class ResendVerificationRequest(BaseModel):
+    email: str
+
+@app.post("/api/auth/resend_verification")
+async def api_resend_verification(request: ResendVerificationRequest):
+    try:
+        resend_verification_email(request.email)
+        return {"status": "success"}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 

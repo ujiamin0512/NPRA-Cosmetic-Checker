@@ -3,10 +3,19 @@ from database.client import supabase, url, key
 
 def auth_login(email: str, password: str) -> dict:
     temp_client = create_client(url, key)
-    response = temp_client.auth.sign_in_with_password({
-        "email": email,
-        "password": password
-    })
+    try:
+        response = temp_client.auth.sign_in_with_password({
+            "email": email,
+            "password": password
+        })
+    except Exception as e:
+        msg = str(e).lower()
+        if "email not confirmed" in msg or "not confirmed" in msg:
+            raise Exception("EMAIL_NOT_VERIFIED")
+        raise
+
+    if response.user and not response.user.email_confirmed_at:
+        raise Exception("EMAIL_NOT_VERIFIED")
 
     if response.user:
         user_id = response.user.id

@@ -197,8 +197,27 @@ class _SignUpPageState extends State<SignUpPage> {
 
       if (!mounted) return;
 
-      _showSnackBar('Account created. Please log in.');
+      if (!mounted) return;
 
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Verify Your Email'),
+          content: Text(
+            'A verification link has been sent to $email.\n\nPlease check your inbox and click the link before logging in.',
+          ),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1D0CC2)),
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+
+      if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const LoginPage()),
       );

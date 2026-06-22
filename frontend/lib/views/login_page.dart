@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../databases/user_db.dart';
+import '../databases/user_db.dart' show UserDatabase, EmailNotVerifiedException;
 import '../models/user.dart';
 import '../models/userinput.dart';
 import '../widgets/inputfield.dart';
@@ -228,6 +228,7 @@ class _LoginFormState extends State<_LoginForm> {
         return;
       }
 
+
       _showSnackBar('Welcome back, ${user.username}');
       
       // Navigate and clear the navigation stack
@@ -243,6 +244,9 @@ class _LoginFormState extends State<_LoginForm> {
           (Route<dynamic> route) => false,
         );
       }
+    } on EmailNotVerifiedException catch (e) {
+      if (!mounted) return;
+      _showEmailNotVerifiedDialog(e.email);
     } catch (e) {
       _showSnackBar('An error occurred: $e');
     } finally {
@@ -250,6 +254,37 @@ class _LoginFormState extends State<_LoginForm> {
         setState(() => _submitting = false);
       }
     }
+  }
+
+  void _showEmailNotVerifiedDialog(String email) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Email Not Verified'),
+        content: Text(
+          'Please check your inbox for $email and click the verification link before logging in.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1D0CC2)),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              try {
+                await UserDatabase.resendVerificationEmail(email);
+                if (mounted) _showSnackBar('Verification email resent. Please check your inbox.');
+              } catch (e) {
+                if (mounted) _showSnackBar('Failed to resend: $e');
+              }
+            },
+            child: const Text('Resend Email', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showSnackBar(String message) {

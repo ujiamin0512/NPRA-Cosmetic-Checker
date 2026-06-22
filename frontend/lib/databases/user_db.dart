@@ -4,6 +4,11 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
 
 import '../models/user.dart' as model;
+
+class EmailNotVerifiedException implements Exception {
+  final String email;
+  const EmailNotVerifiedException(this.email);
+}
 import '../models/skin_profile.dart';
 import '../services/api_service.dart';
 
@@ -127,6 +132,23 @@ class UserDatabase {
     return false;
   }
 
+  static Future<void> resendVerificationEmail(String email) async {
+    final url = Uri.parse('${await ApiService.getBaseUrl()}/api/auth/resend_verification');
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email}),
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['status'] != 'success') {
+        throw Exception(data['message'] ?? 'Failed to resend verification email');
+      }
+    } else {
+      throw Exception('Server error: ${response.statusCode}');
+    }
+  }
+
   static Future<model.User?> validateCredentials(String email, String password) async {
     final url = Uri.parse('${await ApiService.getBaseUrl()}/api/auth/login');
     try {
@@ -140,6 +162,9 @@ class UserDatabase {
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        if (data['status'] == 'error' && data['message'] == 'EMAIL_NOT_VERIFIED') {
+          throw EmailNotVerifiedException(email);
+        }
         if (data['status'] == 'success' && data['user'] != null) {
           final userJson = data['user'];
           final skinProfileJson = userJson['skinProfile'];

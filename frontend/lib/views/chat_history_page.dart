@@ -3,7 +3,6 @@ import 'package:uuid/uuid.dart';
 import '../databases/chat_db.dart';
 import '../models/chat_session.dart';
 import 'chat_page.dart';
-import '../databases/user_db.dart';
 
 class ChatHistoryPage extends StatefulWidget {
   const ChatHistoryPage({super.key});
@@ -32,38 +31,18 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
     }
   }
 
-  Future<String> _getSkinProfile() async {
-    final user = await UserDatabase.getCurrentUser();
-    if (user == null) return 'No saved skin profile';
-    
-    final types = user.skinProfile.skinTypes.where((e) => e.trim().isNotEmpty).join(', ');
-    final concerns = user.skinProfile.skinConcerns.where((e) => e.trim().isNotEmpty).join(', ');
-
-    if (types.isEmpty && concerns.isEmpty) return 'No saved skin profile';
-    if (concerns.isEmpty) return 'Skin type: $types';
-    if (types.isEmpty) return 'Concerns: $concerns';
-    return 'Skin type: $types; Concerns: $concerns';
-  }
-
-  void _startNewChat() async {
-    final skinProfile = await _getSkinProfile();
-    if (!mounted) return;
-
+  void _startNewChat() {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ChatPage(
           sessionId: const Uuid().v4(),
           flowType: 'home',
-          skinProfile: skinProfile,
         ),
       ),
     ).then((_) => _loadSessions());
   }
 
-  void _resumeChat(ChatSession session) async {
-    final skinProfile = await _getSkinProfile();
-    if (!mounted) return;
-
+  void _resumeChat(ChatSession session) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ChatPage(
@@ -71,7 +50,6 @@ class _ChatHistoryPageState extends State<ChatHistoryPage> {
           flowType: session.flowType,
           productId: session.productId,
           productName: session.title,
-          skinProfile: skinProfile,
         ),
       ),
     ).then((_) => _loadSessions());

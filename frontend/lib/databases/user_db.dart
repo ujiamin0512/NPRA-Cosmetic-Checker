@@ -4,13 +4,13 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart' as p;
 
 import '../models/user.dart' as model;
+import '../models/skin_profile.dart';
+import '../services/api_service.dart';
 
 class EmailNotVerifiedException implements Exception {
   final String email;
   const EmailNotVerifiedException(this.email);
 }
-import '../models/skin_profile.dart';
-import '../services/api_service.dart';
 
 class UserDatabase {
   UserDatabase._();

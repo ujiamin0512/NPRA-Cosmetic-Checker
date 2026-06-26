@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../databases/chat_db.dart';
 import '../databases/user_db.dart';
 import '../models/chat_session.dart';
+import '../models/chat_ai_response.dart';
 import '../services/chat_api_service.dart';
 
 class ChatPage extends StatefulWidget {
@@ -13,8 +14,6 @@ class ChatPage extends StatefulWidget {
   final String flowType; // 'product' or 'home'
   final String? productId;
   final String? productName;
-  final String? ingredients;
-  final String skinProfile;
 
   const ChatPage({
     super.key,
@@ -22,8 +21,6 @@ class ChatPage extends StatefulWidget {
     required this.flowType,
     this.productId,
     this.productName,
-    this.ingredients,
-    required this.skinProfile,
   });
 
   @override
@@ -32,10 +29,9 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   late final core.InMemoryChatController _chatController;
-  
-  // 使用 core.User 而不是 types.User
+
   final _user = const core.User(
-    id: 'user', 
+    id: 'user',
     name: 'You',
     imageSource: 'assets/images/user_avatar.png',
   );
@@ -44,7 +40,7 @@ class _ChatPageState extends State<ChatPage> {
     name: 'Skincare AI',
     imageSource: 'assets/images/logo.png',
   );
-  
+
   bool _isLoading = true;
   final Uuid _uuid = const Uuid();
 
@@ -80,13 +76,10 @@ class _ChatPageState extends State<ChatPage> {
       if (widget.flowType == 'product' && widget.productName != null) {
         _initProductChat();
       } else {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
       }
     } else {
       final dbMessages = await db.getMessagesForSession(widget.sessionId);
-      // 使用 core.Message.text
       final List<core.Message> uiMessages = dbMessages.map((m) {
         return core.Message.text(
           id: m.id,
@@ -97,131 +90,99 @@ class _ChatPageState extends State<ChatPage> {
       }).toList();
 
       await _chatController.setMessages(uiMessages, animated: false);
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
 
+  String _buildAiDisplayText(ChatAiResponse r) {
+    final buffer = StringBuffer(r.reply);
+    if (r.flaggedIngredients.isNotEmpty) {
+      buffer.write('\n\n⚠️ Flagged ingredients: ${r.flaggedIngredients.join(', ')}');
+    }
+    if (r.tips != null && r.tips!.isNotEmpty) {
+      buffer.write('\n\n💡 Tip: ${r.tips}');
+    }
+    return buffer.toString();
+  }
+
   Future<void> _initProductChat() async {
+    const autoMessage = 'Hello! Please analyze this product for my skin.';
     try {
-      // 1. Add User's initial prompt message
-      final userPrompt = "Hello! Can you help me analyze ${widget.productName} for my ${widget.skinProfile} skin?\n\nHere are the ingredients:\n${widget.ingredients ?? 'Not provided'}";
-      
       final userDbMsg = ChatMessageData(
         id: _uuid.v4(),
         sessionId: widget.sessionId,
         role: 'user',
-        content: userPrompt,
+        content: autoMessage,
         createdAt: DateTime.now(),
       );
       await ChatDb.instance.insertMessage(userDbMsg);
-
-      final userUiMsg = core.Message.text(
+      await _chatController.insertMessage(core.Message.text(
         id: userDbMsg.id,
         authorId: _user.id,
         createdAt: userDbMsg.createdAt,
         text: userDbMsg.content,
-      );
-      await _chatController.insertMessage(userUiMsg);
+      ));
 
-      // 2. Get and show AI reply
-      final reply = await ChatApiService.initProductChat(
-        productName: widget.productName!,
-        ingredients: widget.ingredients ?? '',
-        skinProfile: widget.skinProfile,
+      final aiResponse = await ChatApiService.sendToN8n(
+        sessionId: widget.sessionId,
+        userId: UserDatabase.currentUserId ?? '',
+        productId: widget.productId,
+        message: autoMessage,
+        flowType: 'product_init',
       );
 
+      final displayText = _buildAiDisplayText(aiResponse);
       final aiDbMsg = ChatMessageData(
         id: _uuid.v4(),
         sessionId: widget.sessionId,
         role: 'assistant',
-        content: reply,
+        content: displayText,
         createdAt: DateTime.now(),
       );
       await ChatDb.instance.insertMessage(aiDbMsg);
-
-      final aiUiMsg = core.Message.text(
+      await _chatController.insertMessage(core.Message.text(
         id: aiDbMsg.id,
         authorId: _ai.id,
         createdAt: aiDbMsg.createdAt,
-        text: aiDbMsg.content,
-      );
+        text: displayText,
+      ));
 
-      await _chatController.insertMessage(aiUiMsg);
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     } catch (e) {
       if (!mounted) return;
-      // 3. On error, show a polite AI message instead of just a SnackBar
-      final errorDbMsg = ChatMessageData(
+      await _chatController.insertMessage(core.Message.text(
         id: _uuid.v4(),
-        sessionId: widget.sessionId,
-        role: 'assistant',
-        content: "I'm sorry, I'm currently having some trouble connecting to the brain. 🧠 Please check your connection or try again in a few seconds!",
-        createdAt: DateTime.now(),
-      );
-      // We don't necessarily need to save the error message to DB, but let's show it in UI
-      final errorUiMsg = core.Message.text(
-        id: errorDbMsg.id,
         authorId: _ai.id,
-        createdAt: errorDbMsg.createdAt,
-        text: errorDbMsg.content,
-      );
-      await _chatController.insertMessage(errorUiMsg);
-      
-      setState(() {
-        _isLoading = false;
-      });
+        createdAt: DateTime.now(),
+        text: "I'm sorry, I'm currently having some trouble connecting. Please check your connection or try again!",
+      ));
+      setState(() => _isLoading = false);
     }
   }
 
-
   Future<void> _handleSendPressed(String text) async {
-    final userTextMsg = core.Message.text(
+    final userMsg = core.Message.text(
       id: _uuid.v4(),
       authorId: _user.id,
       createdAt: DateTime.now(),
       text: text,
     );
-    await _chatController.insertMessage(userTextMsg);
+    await _chatController.insertMessage(userMsg);
 
-    final userDbMsg = ChatMessageData(
-      id: userTextMsg.id,
+    await ChatDb.instance.insertMessage(ChatMessageData(
+      id: userMsg.id,
       sessionId: widget.sessionId,
       role: 'user',
       content: text,
       createdAt: DateTime.now(),
-    );
-    await ChatDb.instance.insertMessage(userDbMsg);
+    ));
 
-    final messages = _chatController.messages;
-    // Flyer Chat newest messages are at index 0
-    final history = messages.skip(1).toList().reversed.map((m) {
-      return m.map(
-        text: (t) => {
-          'role': t.authorId == _user.id ? 'user' : 'assistant',
-          'content': t.text,
-        },
-        textStream: (_) => {'role': 'assistant', 'content': ''},
-        image: (_) => {'role': 'assistant', 'content': '[image]'},
-        file: (_) => {'role': 'assistant', 'content': '[file]'},
-        video: (_) => {'role': 'assistant', 'content': '[video]'},
-        audio: (_) => {'role': 'assistant', 'content': '[audio]'},
-        system: (s) => {'role': 'system', 'content': s.text},
-        custom: (_) => {'role': 'assistant', 'content': '[custom]'},
-        unsupported: (_) => {'role': 'assistant', 'content': '[unsupported]'},
-      );
-    }).toList();
-
-    // Auto-update title if it's the first user message in a general chat
-    if (widget.flowType == 'home' && history.isEmpty) {
+    // Auto-update title on first home message
+    if (widget.flowType == 'home') {
       final db = ChatDb.instance;
       final session = await db.getSession(widget.sessionId);
       if (session != null && session.title == 'General Skincare Chat') {
-        // Update title with first few words of the message
-        String newTitle = text.length > 30 ? '${text.substring(0, 27)}...' : text;
+        final newTitle = text.length > 30 ? '${text.substring(0, 27)}...' : text;
         await db.createSession(ChatSession(
           id: session.id,
           userId: session.userId,
@@ -234,56 +195,47 @@ class _ChatPageState extends State<ChatPage> {
       }
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      final response = await ChatApiService.sendMessage(
-        flowType: widget.flowType,
-        history: history,
-        newMessage: text,
-        context: {
-          'skin_profile': widget.skinProfile,
-          'product_name': widget.productName,
-          'ingredients': widget.ingredients,
-        },
+      final n8nFlowType = widget.flowType == 'product' ? 'product_ongoing' : 'home';
+
+      final aiResponse = await ChatApiService.sendToN8n(
+        sessionId: widget.sessionId,
+        userId: UserDatabase.currentUserId ?? '',
+        productId: widget.productId,
+        message: text,
+        flowType: n8nFlowType,
       );
 
-      final aiReply = response['reply'] as String? ?? "I'm sorry, I couldn't understand that.";
-
+      final displayText = _buildAiDisplayText(aiResponse);
       final aiDbMsg = ChatMessageData(
         id: _uuid.v4(),
         sessionId: widget.sessionId,
         role: 'assistant',
-        content: aiReply,
+        content: displayText,
         createdAt: DateTime.now(),
       );
       await ChatDb.instance.insertMessage(aiDbMsg);
-
-      final aiUiMsg = core.Message.text(
+      await _chatController.insertMessage(core.Message.text(
         id: aiDbMsg.id,
         authorId: _ai.id,
         createdAt: aiDbMsg.createdAt,
-        text: aiDbMsg.content,
-      );
-
-      await _chatController.insertMessage(aiUiMsg);
+        text: displayText,
+      ));
     } catch (e) {
       if (!mounted) return;
-      final errorUiMsg = core.Message.text(
+      final isTimeout = e.toString().contains('TimeoutException') || e.toString().contains('timed out');
+      await _chatController.insertMessage(core.Message.text(
         id: _uuid.v4(),
         authorId: _ai.id,
         createdAt: DateTime.now(),
-        text: "I'm having trouble responding right now. 🚧 Please try sending your message again!",
-      );
-      await _chatController.insertMessage(errorUiMsg);
+        text: isTimeout
+            ? 'The server is warming up. Please wait a moment and try again!'
+            : 'Something went wrong. Please check your connection and try again.',
+      ));
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -301,9 +253,7 @@ class _ChatPageState extends State<ChatPage> {
             IconButton(
               icon: const Icon(Icons.refresh),
               onPressed: _isLoading ? null : () {
-                setState(() {
-                  _isLoading = true;
-                });
+                setState(() => _isLoading = true);
                 _initProductChat();
               },
               tooltip: 'Retry Analysis',
@@ -316,14 +266,14 @@ class _ChatPageState extends State<ChatPage> {
               chatController: _chatController,
               currentUserId: _user.id,
               onMessageSend: _handleSendPressed,
-              backgroundColor: const Color(0xffefe7dd), // WhatsApp background color
+              backgroundColor: const Color(0xffefe7dd),
               theme: core.ChatTheme(
                 colors: core.ChatColors(
-                  primary: const Color(0xffdcf8c6), // WhatsApp user bubble color
+                  primary: const Color(0xffdcf8c6),
                   onPrimary: Colors.black,
-                  surface: const Color(0xffefe7dd), // WhatsApp background
+                  surface: const Color(0xffefe7dd),
                   onSurface: Colors.black,
-                  surfaceContainer: Colors.white, // WhatsApp AI bubble color
+                  surfaceContainer: Colors.white,
                   surfaceContainerLow: Colors.white70,
                   surfaceContainerHigh: Colors.white,
                 ),
@@ -334,7 +284,7 @@ class _ChatPageState extends State<ChatPage> {
                 chatMessageBuilder: (context, message, index, animation, child, {isRemoved, required isSentByMe, groupStatus}) {
                   final isAi = message.authorId == _ai.id;
                   final user = isAi ? _ai : _user;
-                  
+
                   final avatar = CircleAvatar(
                     radius: 16,
                     backgroundImage: AssetImage(user.imageSource ?? 'assets/images/logo.png'),
@@ -359,8 +309,8 @@ class _ChatPageState extends State<ChatPage> {
                       padding: EdgeInsets.only(
                         top: 4.0,
                         bottom: 4.0,
-                        left: isSentByMe ? 0 : 40.0, // Indent to align with bubble after AI avatar
-                        right: isSentByMe ? 40.0 : 0, // Indent to align with bubble before User avatar
+                        left: isSentByMe ? 0 : 40.0,
+                        right: isSentByMe ? 40.0 : 0,
                       ),
                       child: Text(
                         user.name ?? '',

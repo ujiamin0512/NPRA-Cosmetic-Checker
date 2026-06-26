@@ -37,7 +37,10 @@ class ApiService {
     return null;
   }
 
-  static void resetUrl() => _resolvedUrl = null;
+  static void resetUrl() {
+    _resolvedUrl = null;
+    print('🔄 [ApiService] URL cache cleared, will re-resolve on next request.');
+  }
 
   static Future<String> getBaseUrl() async {
     final base = await resolveBaseUrl();

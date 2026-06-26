@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../models/products.dart';
 import '../services/api_service.dart';
 import '../databases/analysis_cache_db.dart';
-import '../databases/user_db.dart';
 import '../databases/chat_db.dart';
 import 'analysis_report.dart';
 import 'report_form.dart';
@@ -179,9 +178,6 @@ class ProductDetailPage extends StatelessWidget {
                         MaterialPageRoute(builder: (_) => const LoginPage()),
                       );
                     } else {
-                      final user = await UserDatabase.getCurrentUser();
-                      final skinProfile = _buildSkinProfileText(user?.skinProfile.skinTypes, user?.skinProfile.skinConcerns);
-
                       final existingSession = await ChatDb.instance.getSessionByProductId(product.notifNo);
                       final sessionId = existingSession?.id ?? const Uuid().v4();
 
@@ -194,8 +190,6 @@ class ProductDetailPage extends StatelessWidget {
                             flowType: 'product',
                             productId: product.notifNo,
                             productName: product.product,
-                            ingredients: product.ingredients,
-                            skinProfile: skinProfile,
                           ),
                         ),
                       );
@@ -313,21 +307,6 @@ class ProductDetailPage extends StatelessWidget {
   }
 }
 
-String _buildSkinProfileText(List<String>? skinTypes, List<String>? skinConcerns) {
-  final types = (skinTypes ?? []).where((e) => e.trim().isNotEmpty).join(', ');
-  final concerns = (skinConcerns ?? []).where((e) => e.trim().isNotEmpty).join(', ');
-
-  if (types.isEmpty && concerns.isEmpty) {
-    return 'No saved skin profile';
-  }
-  if (concerns.isEmpty) {
-    return 'Skin type: $types';
-  }
-  if (types.isEmpty) {
-    return 'Concerns: $concerns';
-  }
-  return 'Skin type: $types; Concerns: $concerns';
-}
 
 class _DetailRow extends StatelessWidget {
   const _DetailRow({required this.label, required this.value});

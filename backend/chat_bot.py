@@ -19,6 +19,22 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 # =================================================
 
+SKINCARE_KEYWORDS = [
+    'skin', 'skincare', 'moistur', 'sunscreen', 'spf', 'serum', 'toner', 'cleanser',
+    'ingredient', 'acne', 'pimple', 'breakout', 'cosmetic', 'makeup', 'foundation',
+    'lipstick', 'blush', 'concealer', 'eyeshadow', 'mascara', 'product', 'cream',
+    'lotion', 'oil', 'retinol', 'niacinamide', 'hyaluronic', 'vitamin c', 'aha', 'bha',
+    'paraben', 'fragrance', 'allerg', 'sensitiv', 'dry', 'oily', 'combination', 'normal',
+    'pore', 'wrinkle', 'aging', 'brightening', 'whitening', 'pigment', 'dark spot',
+    'redness', 'eczema', 'rosacea', 'dermatitis', 'npra', 'halal', 'beauty', 'hair',
+    'shampoo', 'conditioner', 'body wash', 'spf', 'uv', 'sunburn', 'collagen', 'peptide',
+]
+
+def _is_skincare_relevant(message: str) -> bool:
+    lower = message.lower()
+    return any(kw in lower for kw in SKINCARE_KEYWORDS)
+
+
 class ChatBotManager:
     def __init__(self):
         self.llm = ChatGoogleGenerativeAI(
@@ -80,25 +96,28 @@ Task: Give skincare advice. Be friendly but extremely concise. Language: English
 
     def process_message(self, flow_type: str, history: List[Dict[str, str]], new_message: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """Process an ongoing chat message."""
-        # 1. Determine system prompt based on flow type
+        # 1. Reject off-topic questions for home flow
+        if flow_type == "home" and not _is_skincare_relevant(new_message):
+            return {"reply": "I can only help with skincare, cosmetics, and beauty related questions. Please ask me something related to those topics!"}
+
+        # 2. Determine system prompt based on flow type
         if flow_type == "product":
             sys_prompt = self.get_product_system_prompt(context)
         else:
             sys_prompt = self.get_home_system_prompt(context)
 
-        # 2. Build message history for LangChain
+        # 3. Build message history for LangChain
         messages = [SystemMessage(content=sys_prompt)]
         messages.extend(self._parse_history(history))
         messages.append(HumanMessage(content=new_message))
 
-        # 3. Generate response from Gemini
+        # 4. Generate response from Gemini
         try:
             response = self.llm.invoke(messages)
             return {"reply": response.content}
         except Exception as e:
             print(f"Error in process_message: {e}")
-            return {"reply": "I apologize, but I'm having a bit of trouble responding right now due to high traffic."
-                    "Please try sending your message again!"}
+            return {"reply": "I'm sorry, I'm currently experiencing high demand. Please try again in a moment!"}
 
 # Singleton instance
 chat_bot = ChatBotManager()

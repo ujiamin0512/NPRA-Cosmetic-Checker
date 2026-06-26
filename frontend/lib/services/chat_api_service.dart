@@ -1,64 +1,35 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'api_service.dart';
+import '../models/chat_ai_response.dart';
 
 class ChatApiService {
-  static Future<String> initProductChat({
-    required String productName,
-    required String ingredients,
-    required String skinProfile,
-  }) async {
-    final url = Uri.parse('${await ApiService.getBaseUrl()}/chat/init/product');
+  static const _n8nUrl = 'https://ujiamin0512.app.n8n.cloud/webhook/cosmetic-chat';
+  static const _timeout = Duration(seconds: 90);
 
-    try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'product_name': productName,
-          'ingredients': ingredients,
-          'skin_profile': skinProfile,
-        }),
-      ).timeout(const Duration(seconds: 45));
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(utf8.decode(response.bodyBytes));
-        return data['reply'];
-      } else {
-        throw Exception('Failed to init chat. Status Code: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Error calling chat init API: $e');
-    }
-  }
-
-  static Future<Map<String, dynamic>> sendMessage({
+  static Future<ChatAiResponse> sendToN8n({
+    required String sessionId,
+    required String userId,
+    String? productId,
+    required String message,
     required String flowType,
-    required List<Map<String, String>> history,
-    required String newMessage,
-    required Map<String, dynamic> context,
   }) async {
-    final url = Uri.parse('${await ApiService.getBaseUrl()}/chat/message');
+    final response = await http.post(
+      Uri.parse(_n8nUrl),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'session_id': sessionId,
+        'user_id': userId,
+        'product_id': productId,
+        'message': message,
+        'flow_type': flowType,
+      }),
+    ).timeout(_timeout);
 
-    try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'flow_type': flowType,
-          'history': history,
-          'new_message': newMessage,
-          'context': context,
-        }),
-      ).timeout(const Duration(seconds: 45));
-
-      if (response.statusCode == 200) {
-        return jsonDecode(utf8.decode(response.bodyBytes));
-      } else {
-        throw Exception('Failed to send message. Status Code: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Error calling chat message API: $e');
+    if (response.statusCode == 200) {
+      final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      return ChatAiResponse.fromJson(data);
+    } else {
+      throw Exception('n8n returned status ${response.statusCode}');
     }
   }
 }

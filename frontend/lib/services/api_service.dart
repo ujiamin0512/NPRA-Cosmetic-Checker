@@ -4,35 +4,43 @@ import '../models/analysis.dart';
 
 class ApiService {
   static const String _renderUrl = 'https://npra-cosmetic-checker.onrender.com';
-  static const String _localUrl = 'http://192.168.0.8:8000';
+  // 10.0.2.2 reaches the host machine from an Android emulator;
+  // 192.168.0.8 reaches it from a physical device on the same WiFi.
+  static const List<String> _localUrls = [
+    'http://10.0.2.2:8000',
+    'http://192.168.0.8:8000',
+  ];
 
   static String? _resolvedUrl;
 
-  /// Tries Render first. Falls back to local IP if Render doesn't respond.
-  /// Returns null if neither is reachable.
+  /// Tries Render first (short timeout so cold-start doesn't freeze the app).
+  /// Falls back to local IPs if Render is unreachable.
+  /// Returns null if nothing responds.
   static Future<String?> resolveBaseUrl() async {
     if (_resolvedUrl != null) return _resolvedUrl;
     try {
       final response = await http
           .get(Uri.parse('$_renderUrl/'))
-          .timeout(const Duration(seconds: 60));
-      if (response.statusCode == 200) {
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode < 500) {
         _resolvedUrl = _renderUrl;
         print('🌐 [ApiService] Using Render backend: $_renderUrl');
         return _renderUrl;
       }
     } catch (_) {}
-    // Render unreachable — try local
-    try {
-      final response = await http
-          .get(Uri.parse('$_localUrl/'))
-          .timeout(const Duration(seconds: 4));
-      if (response.statusCode == 200) {
-        _resolvedUrl = _localUrl;
-        print('🏠 [ApiService] Using local backend: $_localUrl');
-        return _localUrl;
-      }
-    } catch (_) {}
+    // Render unreachable — try local URLs (emulator then physical device)
+    for (final localUrl in _localUrls) {
+      try {
+        final response = await http
+            .get(Uri.parse('$localUrl/'))
+            .timeout(const Duration(seconds: 4));
+        if (response.statusCode < 500) {
+          _resolvedUrl = localUrl;
+          print('🏠 [ApiService] Using local backend: $localUrl');
+          return localUrl;
+        }
+      } catch (_) {}
+    }
     print('❌ [ApiService] No backend reachable.');
     return null;
   }

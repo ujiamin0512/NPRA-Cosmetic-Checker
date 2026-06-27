@@ -27,7 +27,11 @@ class ChatApiService {
 
     if (response.statusCode == 200) {
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-      return ChatAiResponse.fromJson(data);
+      // n8n wraps the AI node output under an 'output' key; unwrap if present
+      final payload = (data['output'] is Map<String, dynamic>)
+          ? data['output'] as Map<String, dynamic>
+          : data;
+      return ChatAiResponse.fromJson(payload);
     } else {
       throw Exception('n8n returned status ${response.statusCode}');
     }

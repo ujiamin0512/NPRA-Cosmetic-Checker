@@ -9,6 +9,9 @@ class ApiService {
   static const List<String> _localUrls = [
     'http://10.0.2.2:8000',
     'http://192.168.0.8:8000',
+    'http://10.72.142.96:8000',
+    'http://10.72.202.87:8000',
+    'http://172.20.10.2:8000',
   ];
 
   static String? _resolvedUrl;

@@ -1,0 +1,1048 @@
+{
+  "name": "AI Beauty Advisor",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cosmetic-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "8b7fe1a5-5635-4fe8-b52a-769028604799",
+      "name": "Cosmetic Chat Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        432
+      ],
+      "webhookId": "888dab17-c957-463b-8978-122458dfb967"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.flow_type }}",
+                    "rightValue": "product_init",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "ec757d36-51a2-4eac-b033-0b274c99eca1"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.flow_type }}",
+                    "rightValue": "product_ongoing",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "ade536e9-1718-476d-8290-de6619410e41"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.flow_type }}",
+                    "rightValue": "home",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "f5d811f5-f654-4902-a0df-4dfcdef666f5"
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b98c3d29-cffc-48ce-917b-30b25454cc3c",
+      "name": "Route by Flow Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        224,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "skin_profiles",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $('Cosmetic Chat Webhook').item.json.body.user_id }}"
+            }
+          ]
+        }
+      },
+      "id": "66127632-3e16-4c1f-8fc3-c5c2a2754ab2",
+      "name": "Fetch Skin Profile",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        512,
+        0
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "rbVXOd7qwixIqKyh",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "products",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "notif_no",
+              "keyValue": "={{ $('Cosmetic Chat Webhook').item.json.body.product_id }}"
+            }
+          ]
+        }
+      },
+      "id": "b8231ce8-3da2-40df-bab2-95fd7eb9801a",
+      "name": "Fetch Product Data",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        512,
+        192
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "rbVXOd7qwixIqKyh",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=User question: {{ $json.body.message }}",
+        "options": {
+          "systemMessage": "You are a topic classifier. Reply ONLY with \"YES\" or \"NO\". No explanation. \nReply \"YES\" if the question is about any of these: \nSkincare (moisturizer, sunscreen, toner, serum, cleanser), Skin conditions (acne, eczema, rosacea, dark spots, oily skin, dry skin), Cosmetics or makeup (foundation, lipstick, eyeshadow, blush, concealer), Beauty or personal care products (shampoo, conditioner, body lotion), Cosmetic ingredients (retinol, niacinamide, hyaluronic acid, parabens, AHA, BHA), Product safety, NPRA registration, halal cosmetics, Hair care or nail care.\n \nReply \"NO\" for everything else such as: \nMath, science, coding, history, politics, Food, sports, entertainment, Any topic unrelated to beauty, skincare, makeup, cosmetic safety"
+        }
+      },
+      "id": "f56f08dc-f9a5-4eda-bf55-b508392b8a32",
+      "name": "Check Question Relevance2",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        448,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "id": "e0d2392f-dd25-4f60-97c4-51fe68046df4",
+      "name": "Gemini Classifier Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        528,
+        704
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "K9lS25EXdEvIHo4L",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "YES",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              },
+              "id": "c0b4e9fb-305b-429e-9650-e9b717ac2fc4"
+            },
+            {
+              "id": "56b3f44b-81c0-4960-9c31-6771ca8a8d85",
+              "leftValue": "",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "0290865f-a454-410d-ace1-097a0e754508",
+      "name": "Is Question Relevant2?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        800,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "skin_profiles",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $('Cosmetic Chat Webhook').item.json.body.user_id }}"
+            }
+          ]
+        }
+      },
+      "id": "1ffa0833-ad88-43b8-b941-40fda145d96c",
+      "name": "Fetch Skin Profile2",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1024,
+        496
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "rbVXOd7qwixIqKyh",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "skin_type",
+              "value": "={{ $(\"Fetch Skin Profile2\").item.json.skin_types.join(\", \") }}",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "concerns",
+              "value": "={{ $(\"Fetch Skin Profile2\").item.json.skin_concerns.join(\", \") }}",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "allergies",
+              "value": "={{ $(\"Fetch Skin Profile2\").item.json.allergies.join(\", \") }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "36cd3acb-03f2-41af-a4b3-7e059ba904cb",
+      "name": "Normalize Ongoing Profile",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1312,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=User Skin Profile:\\n- Skin Type: {{ $json.skin_type }}\\n- Concerns: {{ $json.concerns }}\\n- Allergies: {{ $json.allergies }}\\n\\nUser Question: {{ $(\"Cosmetic Chat Webhook\").item.json.body.message }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a skincare assistant for the NPRA Cosmetic Checker app. Continue the conversation about the product the user is asking about. Use the conversation history to provide context-aware responses. Only answer questions related to skincare, cosmetics, makeup, beauty products, ingredients, or skin conditions. If asked anything else, politely decline."
+        }
+      },
+      "id": "56c19279-d71d-4be9-a345-ad5e2464695e",
+      "name": "Generate Ongoing Response",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1664,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "id": "77ae763b-6e44-4748-8973-83b0b3fd832c",
+      "name": "Gemini Pro Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1600,
+        608
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "K9lS25EXdEvIHo4L",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Cosmetic Chat Webhook').item.json.body.session_id }}",
+        "contextWindowLength": 10
+      },
+      "id": "6f9b3cce-f7c3-4460-9868-de5d099d41ba",
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        1728,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{ \n  \"reply\": \"your full answer here\", \n  \"flagged_ingredients\": [\"ingredient1\", \"ingredient2\"], \n  \"suitable_for_user\": true, \n  \"tips\": \"optional short tip for the user\" \n}"
+      },
+      "id": "4928efaa-dc1e-4595-9d2e-c8f70d6fba8a",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1856,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $(\"Generate Ongoing Response\").item.json.output }}",
+        "options": {}
+      },
+      "id": "cb46613e-2450-411d-9ff6-98d1d1f71a69",
+      "name": "Send Ongoing Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2064,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=User question: {{ $json.body.message }}",
+        "options": {
+          "systemMessage": "You are a topic classifier. Reply ONLY with \"YES\" or \"NO\". No explanation. \nReply \"YES\" if the question is about any of these: \nSkincare (moisturizer, sunscreen, toner, serum, cleanser), Skin conditions (acne, eczema, rosacea, dark spots, oily skin, dry skin), Cosmetics or makeup (foundation, lipstick, eyeshadow, blush, concealer), Beauty or personal care products (shampoo, conditioner, body lotion), Cosmetic ingredients (retinol, niacinamide, hyaluronic acid, parabens, AHA, BHA), Product safety, NPRA registration, halal cosmetics, Hair care or nail care.\n \nReply \"NO\" for everything else such as: \nMath, science, coding, history, politics, Food, sports, entertainment, Any topic unrelated to beauty, skincare, makeup, cosmetic safety"
+        }
+      },
+      "id": "a20014ba-08ed-4d95-b515-3ca297bfe5b9",
+      "name": "Check Question Relevance",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        448,
+        992
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "YES",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              },
+              "id": "c0b4e9fb-305b-429e-9650-e9b717ac2fc4"
+            },
+            {
+              "id": "56b3f44b-81c0-4960-9c31-6771ca8a8d85",
+              "leftValue": "",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2f29b30e-14e9-450b-bfd2-a09ab74485f6",
+      "name": "Is Question Relevant?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        800,
+        992
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "skin_profiles",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $('Cosmetic Chat Webhook').item.json.body.user_id }}"
+            }
+          ]
+        }
+      },
+      "id": "b1558290-9e8c-4f69-8db8-eeb51ae30cca",
+      "name": "Fetch Skin Profile1",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1024,
+        896
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "rbVXOd7qwixIqKyh",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "skin_type",
+              "value": "={{ $json.skin_types.join(\", \") }}",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "concerns",
+              "value": "={{ $json.skin_concerns.join(\", \") }}",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "allergies",
+              "value": "={{ $json.allergies.join(\", \") }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f176846f-e51e-4f20-8a27-4d65f0921cb9",
+      "name": "Normalize Home Profile",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1312,
+        896
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=User Skin Profile:\\n- Skin Type: {{ $json.skin_type }}\\n- Concerns: {{ $json.concerns }}\\n- Allergies: {{ $json.allergies }}\\n\\nUser Question: {{ $(\"Cosmetic Chat Webhook\").item.json.body.message }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a skincare assistant for the NPRA Cosmetic Checker app. Your job is to answer general skincare questions based on user skin profiles. Only answer questions related to skincare, cosmetics, makeup, beauty products, ingredients, or skin conditions. If asked anything else, politely decline."
+        }
+      },
+      "id": "efaf4f8f-b706-41df-9dab-026e91021f6a",
+      "name": "Generate Home Response",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1664,
+        896
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "id": "49d8c599-1841-42ce-ae1a-73d38d39e17c",
+      "name": "Gemini Flash Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1600,
+        1120
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "K9lS25EXdEvIHo4L",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Cosmetic Chat Webhook').item.json.body.session_id }}",
+        "contextWindowLength": 10
+      },
+      "id": "20d8a41a-438e-489b-ab8d-d59447919c48",
+      "name": "Simple Memory1",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        1728,
+        1120
+      ]
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"reply\": \"your short answer here\",\n  \"tips\": \"optional short tip for the user\"\n}"
+      },
+      "id": "10de6c7f-a9d3-4031-b234-6b0b7a582842",
+      "name": "Structured Output Parser1",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1856,
+        1120
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $(\"Generate Home Response\").item.json.output }}",
+        "options": {}
+      },
+      "id": "6445849c-cb86-4afe-8e05-dc51f832deff",
+      "name": "Send Home Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2064,
+        896
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"is_relevant\": false, \"reply\": \"I can only answer questions about skincare, cosmetics, and beauty related context. Please ask a relevant question.\" } }}",
+        "options": {}
+      },
+      "id": "93b9b634-76f9-43ed-9551-b6efb2fa48de",
+      "name": "Reject Off-Topic",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1024,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "id": "7edf30b5-4464-4151-885c-2bacb0dfc65d",
+      "name": "Combine Product Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        800,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "skin_type",
+              "value": "={{ $(\"Combine Product Data\").item.json.skin_types.join(\", \") }}",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "concerns",
+              "value": "={{ $(\"Combine Product Data\").item.json.skin_concerns.join(\", \") }}",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "allergies",
+              "value": "={{ $(\"Combine Product Data\").item.json.allergies.join(\", \") }}",
+              "type": "string"
+            },
+            {
+              "id": "4",
+              "name": "product",
+              "value": "={{ $(\"Combine Product Data\").item.json.product }}",
+              "type": "string"
+            },
+            {
+              "id": "5",
+              "name": "ingredients",
+              "value": "={{ $(\"Combine Product Data\").item.json.ingredients }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "dd77698f-16ae-46a0-91cc-1516aa235e6d",
+      "name": "Normalize Profile Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1024,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=User Skin Profile:\\n- Skin Type: {{ $json.skin_type }}\\n- Concerns: {{ $json.concerns }}\\n- Allergies: {{ $json.allergies }}\\n\\nProduct Ingredients:\\n- Product Name: {{ $json.product }}\\n- Ingredients: {{ $json.ingredients }}\\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a skincare assistant for the NPRA Cosmetic Checker app. Your job is to help users understand cosmetic products and ingredients based on their personal skin profile. Only answer questions related to skincare, cosmetics, makeup, beauty products, ingredients, or skin conditions. If asked anything else, politely decline. Instructions: \n1. Analyze if the ingredients are suitable for the user's skin profile \n2. Flag any ingredients that may cause issues based on their allergies or concerns \n3. Give personalized advice based on their skin types"
+        }
+      },
+      "id": "c388d60e-8b28-4a06-8345-794748857bfe",
+      "name": "Generate Product Response",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1248,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $(\"Generate Product Response\").item.json.output }}",
+        "options": {}
+      },
+      "id": "9aa93ccc-3b2e-45a0-9ee0-cf9f5a2aa3ed",
+      "name": "Send Product Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1728,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"is_relevant\": false, \"reply\": \"I can only answer questions about skincare, cosmetics, and beauty related context. Please ask a relevant question.\" } }}",
+        "options": {}
+      },
+      "id": "0e6ba9c0-906b-488b-a683-30015a493580",
+      "name": "Reject Off-Topic2",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1024,
+        688
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Cosmetic Chat Webhook": {
+      "main": [
+        [
+          {
+            "node": "Route by Flow Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Flow Type": {
+      "main": [
+        [
+          {
+            "node": "Fetch Skin Profile",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Product Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Question Relevance2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Question Relevance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Skin Profile": {
+      "main": [
+        [
+          {
+            "node": "Combine Product Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Product Data": {
+      "main": [
+        [
+          {
+            "node": "Combine Product Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Check Question Relevance2": {
+      "main": [
+        [
+          {
+            "node": "Is Question Relevant2?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Classifier Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Check Question Relevance2",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Check Question Relevance",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Question Relevant2?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Skin Profile2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject Off-Topic2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Skin Profile2": {
+      "main": [
+        [
+          {
+            "node": "Normalize Ongoing Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Ongoing Profile": {
+      "main": [
+        [
+          {
+            "node": "Generate Ongoing Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Ongoing Response": {
+      "main": [
+        [
+          {
+            "node": "Send Ongoing Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Pro Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Ongoing Response",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Generate Product Response",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Generate Ongoing Response",
+            "type": "ai_memory",
+            "index": 0
+          },
+          {
+            "node": "Generate Product Response",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Generate Ongoing Response",
+            "type": "ai_outputParser",
+            "index": 0
+          },
+          {
+            "node": "Generate Product Response",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Question Relevance": {
+      "main": [
+        [
+          {
+            "node": "Is Question Relevant?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Question Relevant?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Skin Profile1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject Off-Topic",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Skin Profile1": {
+      "main": [
+        [
+          {
+            "node": "Normalize Home Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Home Profile": {
+      "main": [
+        [
+          {
+            "node": "Generate Home Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Home Response": {
+      "main": [
+        [
+          {
+            "node": "Send Home Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini Flash Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Home Response",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "Generate Home Response",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Generate Home Response",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Product Data": {
+      "main": [
+        [
+          {
+            "node": "Normalize Profile Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Profile Data": {
+      "main": [
+        [
+          {
+            "node": "Generate Product Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Product Response": {
+      "main": [
+        [
+          {
+            "node": "Send Product Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "6492d9c1-9bc1-41ee-9612-4eefb18e27eb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ec9a5d422884c76aed3440b6e97d8845d0856395606b6bea8c157b10339871e4"
+  },
+  "nodeGroups": [],
+  "id": "8CprCJdXJmcBqA7H",
+  "tags": []
+}

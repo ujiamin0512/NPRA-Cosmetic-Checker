@@ -25,28 +25,37 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 # ==========================================
 
-def analyze_single_ingredient(name: str):
+def analyze_single_ingredient(name: str, retries: int = 3):
     clean_name = name.lower().strip()
-    
+
     if not clean_name:
         return None
 
-    try:
-        res = supabase.rpc("smart_search_high_precision", {"search_text": clean_name}).execute()
-        
-        if res.data and len(res.data) > 0:
-            temp_match = res.data[0]
-            score = temp_match.get('similarity_score', 0)
-            m_type = temp_match.get('matched_type', 'unknown')
-            inci_name = temp_match.get('inci_name', 'N/A')
-            
-            if m_type.startswith('exact') or (m_type == 'fuzzy_match' and score >= 0.7):
-                print(f"✅ DEBUG: '{name}' -> '{inci_name}' (Score: {score:.4f})")
-                return temp_match
-    except Exception as e:
-        print(f"⚠️ Error analyzing '{name}': {e}")
+    last_error = None
+    for attempt in range(retries):
+        try:
+            res = supabase.rpc("smart_search_high_precision", {"search_text": clean_name}).execute()
 
-    print(f"❌ DEBUG: No results found for '{clean_name}'")
+            if res.data and len(res.data) > 0:
+                temp_match = res.data[0]
+                score = temp_match.get('similarity_score', 0)
+                m_type = temp_match.get('matched_type', 'unknown')
+                inci_name = temp_match.get('inci_name', 'N/A')
+
+                if m_type.startswith('exact') or (m_type == 'fuzzy_match' and score >= 0.7):
+                    print(f"✅ DEBUG: '{name}' -> '{inci_name}' (Score: {score:.4f})")
+                    return temp_match
+
+            # No match found for this ingredient — no point retrying.
+            break
+        except Exception as e:
+            last_error = e
+            print(f"⚠️ Attempt {attempt + 1}/{retries} failed for '{name}': {e}")
+
+    if last_error is not None:
+        print(f"❌ DEBUG: Giving up on '{clean_name}' after {retries} attempts: {last_error}")
+    else:
+        print(f"❌ DEBUG: No results found for '{clean_name}'")
     return {
         "inci_name": name,
         "matched_type": "not_found",
@@ -62,7 +71,7 @@ def analyze_ingredients_strict(ingredients_input: str):
 
     print(f"\n🧪 分析中: 发现 {len(input_names)} 个成分...\n")
 
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=5) as executor:
         final_details = list(executor.map(analyze_single_ingredient, input_names))
 
     summary = {

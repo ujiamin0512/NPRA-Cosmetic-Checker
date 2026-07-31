@@ -24,12 +24,13 @@ AI assistant for personalized advice based on their own skin profile.
 
 ## Features
 
-- **Product lookup** — search the NPRA notification register by product name, brand, or notification
-  number, with fuzzy and full-text search.
-- **Ingredient analysis** — paste an ingredient list and get a strict-matching breakdown of whether a
+- **Product lookup** — search the NPRA notification register by product name, brand, or ingredients, with fuzzy and full-text search.
+- **Ingredient analysis** — read the ingredient list and get a strict-matching breakdown of whether a
   product is natural, vegan, fragrance-free, paraben-free, silicone-free, sulphate-free, and gluten-free.
-- **AI beauty advisor** — a Gemini-powered chatbot (via LangChain) that answers skincare and ingredient
-  questions in the context of a product or an ongoing conversation, scoped to skincare-relevant topics.
+- **AI beauty advisor** — a Gemini-powered chatbot, orchestrated as an [n8n](https://n8n.io/) workflow
+  (`AI Beauty Advisor.json`), that classifies whether a question is skincare-relevant, pulls the user's
+  skin profile and (if applicable) product data from Supabase, and generates a context-aware, structured
+  reply for the home, product-intro, and ongoing-chat flows.
 - **Skin profile** — a short onboarding wizard captures skin type, concerns, and allergies to personalize
   analysis and chat responses.
 - **Incident reports** — users can file a report against a product, attaching a location picked from an
@@ -39,14 +40,24 @@ AI assistant for personalized advice based on their own skin profile.
 ## Architecture
 
 ```
-frontend/   Flutter app (Android, iOS, web, desktop) — the user-facing client
-backend/    FastAPI service — ingredient analysis, chat, and Supabase-backed REST API
+frontend/               Flutter app (Android, iOS, web, desktop) — the user-facing client
+backend/                FastAPI service — ingredient analysis and Supabase-backed REST API
+AI Beauty Advisor.json  n8n workflow — the AI beauty advisor chatbot
 ```
 
-The frontend talks to the FastAPI backend over HTTP for ingredient analysis and chat, and to Supabase
-directly (via the backend's REST wrapper) for auth, products, reports, and skin profile data. Product and
-substance data originate from the NPRA register (see `frontend/assets/database/cosmetics.csv`) and are
-served from a Supabase Postgres database with full-text and trigram search functions.
+The frontend talks to the FastAPI backend over HTTP for ingredient analysis, and to Supabase directly
+(via the backend's REST wrapper) for auth, products, reports, and skin profile data. Chat messages are
+sent to a webhook (`cosmetic-chat`) exposed by the **n8n** workflow in `AI Beauty Advisor.json`, which
+runs independently of the FastAPI service: it routes by flow type (home / product intro / ongoing chat),
+uses a Gemini agent to filter out off-topic questions, fetches skin-profile and product context from
+Supabase, and generates a structured reply with a Gemini LLM agent and short-term conversation memory.
+Product and substance data originate from the NPRA register (see
+`frontend/assets/database/cosmetics.csv`) and are served from a Supabase Postgres database with
+full-text and trigram search functions.
+
+> [!NOTE]
+> `backend/chat_bot.py` contains an earlier LangChain-based implementation of the same chat logic; the
+> app's chat feature is now served by the n8n workflow described above.
 
 ## Tech stack
 
@@ -54,7 +65,7 @@ served from a Supabase Postgres database with full-text and trigram search funct
 | ---------- | ------------------------------------------------------------------------ |
 | Frontend   | Flutter, `flutter_map`, `sqflite`, `flutter_chat_ui`                     |
 | Backend    | FastAPI, Uvicorn, Pydantic                                               |
-| AI         | LangChain + Google Gemini (`langchain-google-genai`)                     |
+| AI / Chat  | n8n (LangChain nodes) + Google Gemini                                    |
 | Data       | Supabase (Postgres, Auth)                                                |
 
 ## Getting started
@@ -66,6 +77,7 @@ served from a Supabase Postgres database with full-text and trigram search funct
 - A [Supabase](https://supabase.com/) project with the products/ingredients schema and RPC functions
   (`smart_search_high_precision`, `search_products_trigram`)
 - A [Google Gemini API key](https://ai.google.dev/)
+- An [n8n](https://n8n.io/) instance (self-hosted or n8n Cloud) to run the AI beauty advisor workflow
 
 ### Backend
 
@@ -105,6 +117,14 @@ flutter run
 > Update the backend base URL in `frontend/lib/services/api_service.dart` and
 > `frontend/lib/services/chat_api_service.dart` to point at your running backend instance.
 
+### AI beauty advisor (n8n)
+
+1. Import `AI Beauty Advisor.json` into your n8n instance.
+2. Add credentials for **Supabase** and **Google Gemini (PaLM)** and attach them to the corresponding
+   nodes (`Fetch Skin Profile*`, `Fetch Product Data`, `Gemini * Model` nodes).
+3. Activate the workflow and note the production webhook URL for `cosmetic-chat`.
+4. Point `frontend/lib/services/chat_api_service.dart` at that webhook URL.
+
 ## Project structure
 
 <details>
@@ -113,7 +133,7 @@ flutter run
 ```
 main.py                  FastAPI app and route definitions
 ingredients_analysis.py  Ingredient matching and safety analysis
-chat_bot.py              LangChain/Gemini chat logic
+chat_bot.py              Earlier LangChain/Gemini chat logic, superseded by the n8n workflow
 database/                Supabase-backed auth, product, report, and skin profile functions
 ```
 </details>
